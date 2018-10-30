@@ -12,6 +12,12 @@ $queries = array(
         "return" => "insertid",
         "verb" => "POST"
     ),
+    "addLDAP" => array(
+      "sql" => "insert into ldaps (login, ldap) values (:login, :ldap)",
+      "params" => array("login", "ldap"),
+      "return" => "insertid",
+      "verb" => "POST"
+    ),
     "addOrg" => array(
         "sql" => "insert into orgs (name) values (:name)",
         "params" => array("name"),
@@ -53,6 +59,12 @@ $queries = array(
         "params" => array("login"),
         "return" => "rows",
         "verb" => "GET"
+    ),
+    "getLDAP" => array(
+      "sql" => "select id, ldap from ldaps where login = :login",
+      "params" => array("login"),
+      "return" => "rows",
+      "verb" => "GET"
     ),
     "getAllOrgs" => array(
         "sql" => "select id, name from orgs",

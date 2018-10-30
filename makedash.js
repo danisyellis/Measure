@@ -100,6 +100,26 @@ function getMyOrgUsers(options) {
 
 
 
+function insertLDAPs(options) {
+  let datagrid = [] //fill this with the array of idobjects from the interim dashboard project
+  return new Promise((resolve, reject) => {
+    var sqlite3 = require('sqlite3').verbose();
+    var db = new sqlite3.Database(options.sqliteDatabase, (err) => {
+      if (err) return reject(NICE_ERRORS.COULD_NOT_OPEN_DB(err, options.sqliteDatabase));
+      datagrid.forEach(idObject => {
+        let githubId = idObject.github;
+        let ldap = idObject.LDAP;
+        db.run("insert into ldaps (login, ldap) values (?,?)", [githubId, ldap], (err) => {
+            if (err) return reject(err);
+        })
+      })
+      return resolve(options);
+    })
+  })
+}
+
+
+
 function api(options) {
     return new Promise((resolve, reject) => {
         fs.readFile("php/api.php", {encoding: "utf-8"}, (err, data) => {
@@ -161,7 +181,8 @@ const tableDefinitions = [
     "people2org (id INTEGER PRIMARY KEY, org INTEGER, login TEXT, joined DATETIME DEFAULT CURRENT_TIMESTAMP, left DATETIME)",
     "orgChanges (id INTEGER PRIMARY KEY, org INTEGER, change TEXT, destination INTEGER)",
     "secret (secret TEXT)",
-    "bio (login TEXT PRIMARY KEY, name TEXT, company TEXT, blog TEXT, location TEXT, email TEXT, hireable TEXT)"
+    "bio (login TEXT PRIMARY KEY, name TEXT, company TEXT, blog TEXT, location TEXT, email TEXT, hireable TEXT)",
+    "ldaps (id INTEGER PRIMARY KEY, login TEXT, ldap TEXT)"
 ];
 function apidb(options) {
     return new Promise((resolve, reject) => {
@@ -246,15 +267,15 @@ function leave(options) {
         var timestaken = [];
         for (var widgetname in options.times) {
             timestaken.push([
-                widgetname, 
-                options.times[widgetname].reduce(function (a, b) { return a + b; }, 0), 
+                widgetname,
+                options.times[widgetname].reduce(function (a, b) { return a + b; }, 0),
                 options.times[widgetname].length
             ]);
         }
         timestaken.sort((a,b) => { return a[1] - b[1]; })
-        console.log(timestaken.map(n => { 
-            return n[0] + ": " + Math.round(n[1] / 1000) + "s total in " + 
-                n[2] + " iterations, " + Math.round(n[1] / n[2]) + "ms/iteration"; 
+        console.log(timestaken.map(n => {
+            return n[0] + ": " + Math.round(n[1] / 1000) + "s total in " +
+                n[2] + " iterations, " + Math.round(n[1] / n[2]) + "ms/iteration";
         }).join("\n"));
     }
 }
@@ -277,6 +298,7 @@ loads.loadTemplates()
     .then(apidbActionChanges)
     .then(getAllOrgUsers)
     .then(getMyOrgUsers)
+    //.then(insertLDAPs)
     .then(runtime_auth.setupRuntimeAuth)
     .then(runtime_auth.copyAuthPHP)
     .then(dashboards.dashboardForEachTeam)
@@ -306,13 +328,13 @@ loads.loadTemplates()
                         }
                         console.error("\nAn internal error has occurred: " + e.message + ".\n" +
                             "Internal errors are by definition a bug in Measure, and should be reported.\n" +
-                            "The error was detected at line " + lineno + " of '" + sourcefile + "'.\n" + 
+                            "The error was detected at line " + lineno + " of '" + sourcefile + "'.\n" +
                             "This should never happen, and I am halting in abject failure.");
                     })
                     .catch(function(ste) {
                         console.error("\nAn internal error has occurred: " + e.message + ".\n" +
                             "Internal errors are by definition a bug in Measure, and should be reported.\n" +
-                            "Additionally, while handling that error another error occurred: " + 
+                            "Additionally, while handling that error another error occurred: " +
                                 ste.message + ".\n" +
                             "The original error may have been " + e.stack.split("\n")[1].trim() + "\n" +
                             "This should never happen, and I am halting in abject failure.");
@@ -321,7 +343,7 @@ loads.loadTemplates()
         } catch(ste) {
             console.error("\nAn internal error has occurred: " + e.message + ".\n" +
                 "Internal errors are by definition a bug in Measure, and should be reported.\n" +
-                "Additionally, while handling that error another error occurred: " + 
+                "Additionally, while handling that error another error occurred: " +
                     ste.message + ".\n" +
                 "The original error may have been " + e.stack.split("\n")[1].trim() + "\n" +
                 "This should never happen, and I am halting in abject failure.");
